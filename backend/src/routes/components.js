@@ -4,6 +4,7 @@ import {
   queryAll, queryOne, insert, update, remove, transaction, getComponentWithVersions,
 } from '../db.js';
 import { getEmbedding, vectorToBuffer } from '../semantic.js';
+import { getComponentLabels } from '../intentClassifier.js';
 
 const router = Router();
 
@@ -19,15 +20,18 @@ router.get('/', (req, res) => {
     const versions = activeOnly === 'true' ? allVers.filter(v => v.is_active === 1) : allVers;
     if (activeOnly === 'true' && versions.length === 0) continue;
     const active = versions.find(v => v.is_active === 1) || versions[0] || null;
+    let labels = [];
+    if (c.labels) { try { labels = JSON.parse(c.labels); } catch { labels = []; } }
     out.push({
       id: c.id,
       name: c.name,
       semantic_description: c.semantic_description,
       category: c.category,
+      labels,
       props_schema: c.props_schema ? JSON.parse(c.props_schema) : null,
       created_at: c.created_at,
       versions: versions.map(v => ({ id: v.id, version: v.version, is_active: !!v.is_active, changelog: v.changelog, created_at: v.created_at })),
-      active_version: active ? { id: active.id, version: active.version, is_active: !!active.is_active, changelog: active.changelog, created_at: active.created_at } : null,
+      active_version: active ? { id: active.id, version: active.version, is_active: !!active.is_active, changelog: active.changelog, created_at: active.created_at, source_code: active.source_code } : null,
     });
   }
   res.json(out);
@@ -52,6 +56,7 @@ router.post('/', async (req, res) => {
     const versionId = uuidv4();
     const vec = await getEmbedding(semantic_description);
     const vecBuf = vectorToBuffer(vec);
+    const autoLabels = getComponentLabels(name, category || '', semantic_description);
 
     transaction(() => {
       insert('components', {
@@ -60,6 +65,7 @@ router.post('/', async (req, res) => {
         semantic_description,
         category: category || null,
         props_schema: props_schema ? JSON.stringify(props_schema) : null,
+        labels: JSON.stringify(autoLabels),
       });
       insert('component_versions', {
         id: versionId,
@@ -103,7 +109,8 @@ router.post('/:id/versions', async (req, res) => {
         is_active: 1,
       });
       if (semantic_description) {
-        update('components', { id: c.id }, { semantic_description });
+        const newLabels = getComponentLabels(c.name, c.category || '', semantic_description);
+        update('components', { id: c.id }, { semantic_description, labels: JSON.stringify(newLabels) });
       }
     });
 

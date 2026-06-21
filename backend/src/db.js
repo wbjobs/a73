@@ -173,6 +173,10 @@ export function queryActiveVersionsWithComponent() {
   const versions = queryAll('component_versions', { is_active: 1 });
   return versions.map(v => {
     const comp = queryOne('components', { id: v.component_id });
+    let labels = [];
+    if (comp?.labels) {
+      try { labels = JSON.parse(comp.labels); } catch { labels = []; }
+    }
     return {
       version_id: v.id,
       component_id: v.component_id,
@@ -184,6 +188,7 @@ export function queryActiveVersionsWithComponent() {
       semantic_description: comp?.semantic_description,
       category: comp?.category,
       props_schema: comp?.props_schema,
+      labels,
     };
   });
 }

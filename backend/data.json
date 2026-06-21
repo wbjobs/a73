@@ -1,262 +1,192 @@
 {
   "components": [
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "af05a281-3ce6-4cdf-9acf-8b4d8238c446",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "f2311c1b-ceb4-4946-80fb-2f56753b6301",
       "name": "ArticleHeader",
       "semantic_description": "文章页头组件 标题 副标题 栏目标签 眉毛导航 科技新闻开头头图区域",
       "category": "layout",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_header\",\"news\",\"tech\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "cc5eda69-cadf-4f23-8eb9-23f55d39c439",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "2f1e6340-94d3-4247-a7fc-6b213425105f",
       "name": "Timeline",
       "semantic_description": "时间线组件 科技新闻发展历程 时间节点 里程碑 事件时间轴按时间顺序展示",
       "category": "layout",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_header\",\"has_timeline\",\"news\",\"tech\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "8ceaea9b-5acf-4c31-99c8-ff4cdf28f08c",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "d23faec7-75fe-4d32-ae66-6ed2132b73c4",
       "name": "ImageBlock",
       "semantic_description": "图片展示组件 单张图片 带说明文字 科技新闻配图照片图注",
       "category": "media",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_image\",\"news\",\"has_header\",\"tech\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "e4fbda61-6abf-4811-8874-141286b6bc37",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "1a01c30a-7a8c-4c88-a900-61ee2938a8ad",
       "name": "CodeBlock",
       "semantic_description": "代码块组件 语法高亮 技术文章代码示例 程序代码片段显示带行号",
       "category": "interactive",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_code\",\"tech\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "dc1246dc-340e-4aae-a9b3-fe61474a9055",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "31192f96-de79-47e5-8ca9-a0a935b2c457",
       "name": "RichParagraph",
       "semantic_description": "正文段落组件 长文本阅读 文章内容段落排版科技新闻正文",
       "category": "content",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"news\",\"has_header\",\"tech\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "818f5ac1-3ec5-48a1-af4b-9a588a8756f5",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "827d4a9e-667f-4165-80ae-0b69a0116796",
       "name": "NewsCard",
       "semantic_description": "新闻卡片组件 科技资讯摘要 标题摘要发布日期标签卡片式布局",
       "category": "content",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_header\",\"news\",\"tech\",\"report\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "9e2e9de7-54a8-4cbc-a12b-339c6efc5d7f",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "6f23d00a-c817-43d4-8c0c-6bba249f2b87",
       "name": "ImageGallery",
       "semantic_description": "图片画廊组件 多图展示 组图浏览 科技产品图片集相册网格排列",
       "category": "media",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_gallery\",\"tech\",\"review\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "fc4e7f8f-b875-481f-af3b-4e8045ee6885",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "bf60fbc2-5921-4bb7-89fa-22070893b51d",
       "name": "QuoteBlock",
       "semantic_description": "引用块组件 引言金句 专家观点 突出显示重要文字引用块",
       "category": "content",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_quote\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "47a27b70-6953-4829-a838-1225a85c5c6f",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "b6324b81-a748-4330-ac4d-27ca01e139d8",
       "name": "KeyPointsList",
       "semantic_description": "要点列表组件 核心要点 关键信息列表 科技文章要点摘要清单",
       "category": "content",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_list\",\"tech\"]"
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "0dea709b-2950-4d8e-acc8-05d35ec3601b",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "ffa71007-4e48-4504-bdf5-e2162e6b0c57",
       "name": "VideoEmbed",
       "semantic_description": "视频嵌入组件 播放器 科技发布会视频 产品演示视频展示",
       "category": "media",
-      "props_schema": null
+      "props_schema": null,
+      "labels": "[\"has_video\",\"tech\",\"review\",\"report\"]"
     }
   ],
   "component_versions": [
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "062bc0dc-eb16-4db7-81a5-a49fedb8f5a7",
-      "component_id": "af05a281-3ce6-4cdf-9acf-8b4d8238c446",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "98ba52bd-66ad-4d7b-964a-ea0f5e9f1c49",
+      "component_id": "f2311c1b-ceb4-4946-80fb-2f56753b6301",
       "version": "1.0.0",
       "source_code": "function ArticleHeader({ eyebrow, title, subtitle }) {\n  return React.createElement('header', { style: { borderBottom: '1px solid #e5e7eb', padding: '32px 0', marginBottom: '24px' } },\n    eyebrow && React.createElement('div', { style: { color: '#2563eb', fontSize: '14px', fontWeight: 600, marginBottom: '8px', letterSpacing: '0.05em' } }, eyebrow),\n    React.createElement('h1', { style: { fontSize: '36px', fontWeight: 800, color: '#111827', margin: '0 0 12px 0', lineHeight: 1.2 } }, title),\n    subtitle && React.createElement('p', { style: { fontSize: '18px', color: '#6b7280', margin: 0, lineHeight: 1.6 } }, subtitle)\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "d907a8dd-4daa-4c1c-8fa9-070f9e38386a",
-      "component_id": "cc5eda69-cadf-4f23-8eb9-23f55d39c439",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "86c701ed-62a8-4e6b-b5d4-43c439ffabd1",
+      "component_id": "2f1e6340-94d3-4247-a7fc-6b213425105f",
       "version": "1.0.0",
       "source_code": "function Timeline({ items = [] }) {\n  return React.createElement('div', { style: { margin: '24px 0', padding: '16px 0' } },\n    React.createElement('div', { style: { fontSize: '14px', color: '#6b7280', marginBottom: '16px', fontWeight: 600 } }, '⏱ 事件时间线'),\n    React.createElement('div', { style: { position: 'relative', paddingLeft: '28px' } },\n      React.createElement('div', { style: { position: 'absolute', left: '7px', top: '4px', bottom: '4px', width: '2px', background: '#e5e7eb' } }),\n      items.map((it, i) => React.createElement('div', { key: i, style: { position: 'relative', marginBottom: '20px' } },\n        React.createElement('div', { style: { position: 'absolute', left: '-28px', top: '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#2563eb', border: '3px solid #dbeafe' } }),\n        React.createElement('div', { style: { fontSize: '12px', color: '#2563eb', fontWeight: 700, marginBottom: '4px' } }, it.time),\n        React.createElement('div', { style: { fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '4px' } }, it.title),\n        React.createElement('div', { style: { fontSize: '14px', color: '#6b7280', lineHeight: 1.6 } }, it.description)\n      ))\n    )\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "69c5ce9f-8357-41af-9bb9-2c44a3656b1a",
-      "component_id": "8ceaea9b-5acf-4c31-99c8-ff4cdf28f08c",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "ca3065ce-435b-437d-bbaf-0204572be7cd",
+      "component_id": "d23faec7-75fe-4d32-ae66-6ed2132b73c4",
       "version": "1.0.0",
       "source_code": "function ImageBlock({ src, alt, caption }) {\n  return React.createElement('figure', { style: { margin: '24px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' } },\n    React.createElement('img', { src, alt, style: { width: '100%', display: 'block', maxHeight: '480px', objectFit: 'cover' } }),\n    caption && React.createElement('figcaption', { style: { background: '#f9fafb', padding: '12px 16px', fontSize: '13px', color: '#6b7280', textAlign: 'center' } }, '📷 ' + caption)\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "ebd5e064-bd99-44b0-a300-21be44b856f3",
-      "component_id": "e4fbda61-6abf-4811-8874-141286b6bc37",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "cab291a2-bddb-49fd-bc2d-1649b54b976e",
+      "component_id": "1a01c30a-7a8c-4c88-a900-61ee2938a8ad",
       "version": "1.0.0",
       "source_code": "function CodeBlock({ language = 'javascript', code = '' }) {\n  return React.createElement('div', { style: { margin: '24px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' } },\n    React.createElement('div', { style: { background: '#1f2937', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' } },\n      React.createElement('span', { style: { width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444' } }),\n      React.createElement('span', { style: { width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' } }),\n      React.createElement('span', { style: { width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' } }),\n      React.createElement('span', { style: { marginLeft: '8px', fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace' } }, language.toUpperCase())\n    ),\n    React.createElement('pre', { style: { margin: 0, background: '#0f172a', padding: '20px', overflowX: 'auto' } },\n      React.createElement('code', { style: { color: '#a5f3fc', fontSize: '13px', lineHeight: 1.6, fontFamily: '\"SF Mono\", Consolas, monospace', whiteSpace: 'pre' } }, code)\n    )\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "a93d0577-bdf4-4694-a23f-0dac6ada29e3",
-      "component_id": "dc1246dc-340e-4aae-a9b3-fe61474a9055",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "aab1595f-60ba-4c8f-b0ba-e076972a2bd6",
+      "component_id": "31192f96-de79-47e5-8ca9-a0a935b2c457",
       "version": "1.0.0",
       "source_code": "function RichParagraph({ content }) {\n  return React.createElement('div', { style: { margin: '20px 0', fontSize: '16px', lineHeight: 1.8, color: '#1f2937' } },\n    (content || '').split(/\\n\\n/).filter(Boolean).map((p, i) =>\n      React.createElement('p', { key: i, style: { margin: '0 0 16px 0', textAlign: 'justify' } }, p)\n    )\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "079052d0-8ba6-4bc0-81d4-67b93c7fb075",
-      "component_id": "818f5ac1-3ec5-48a1-af4b-9a588a8756f5",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "447286d4-14ce-42ed-a29e-30e9def39fc8",
+      "component_id": "827d4a9e-667f-4165-80ae-0b69a0116796",
       "version": "1.0.0",
       "source_code": "function NewsCard({ title, summary, publishedAt, tags = [] }) {\n  return React.createElement('article', { style: { margin: '24px 0', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1px solid #bfdbfe', borderRadius: '16px', padding: '24px' } },\n    React.createElement('div', { style: { display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' } },\n      tags.map((t, i) => React.createElement('span', { key: i, style: { background: '#2563eb', color: 'white', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 } }, '#' + t))\n    ),\n    React.createElement('h3', { style: { fontSize: '22px', fontWeight: 800, color: '#111827', margin: '0 0 10px 0' } }, title),\n    React.createElement('p', { style: { fontSize: '15px', color: '#4b5563', lineHeight: 1.7, margin: '0 0 12px 0' } }, summary),\n    React.createElement('div', { style: { fontSize: '13px', color: '#9ca3af' } }, '📅 发布日期：' + publishedAt)\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "084b385c-a060-4a7c-a3ae-535a5305d65d",
-      "component_id": "9e2e9de7-54a8-4cbc-a12b-339c6efc5d7f",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "2fa0f326-4529-4fee-90ec-2c36d905eb2e",
+      "component_id": "6f23d00a-c817-43d4-8c0c-6bba249f2b87",
       "version": "1.0.0",
       "source_code": "function ImageGallery({ images = [] }) {\n  return React.createElement('div', { style: { margin: '24px 0' } },\n    React.createElement('div', { style: { fontSize: '14px', color: '#6b7280', marginBottom: '12px', fontWeight: 600 } }, '🖼 图片图集'),\n    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' } },\n      images.map((img, i) => React.createElement('div', { key: i, style: { borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', aspectRatio: '4/3' } },\n        React.createElement('img', { src: img.src, alt: img.alt || '', style: { width: '100%', height: '100%', objectFit: 'cover' } })\n      ))\n    )\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "2ac240b5-a0ed-468a-ab1f-71b4a73c6e9b",
-      "component_id": "fc4e7f8f-b875-481f-af3b-4e8045ee6885",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "1d5924bb-8c64-4368-82a6-d41992f99d27",
+      "component_id": "bf60fbc2-5921-4bb7-89fa-22070893b51d",
       "version": "1.0.0",
       "source_code": "function QuoteBlock({ text, author }) {\n  return React.createElement('blockquote', { style: { margin: '24px 0', padding: '20px 28px', borderLeft: '4px solid #2563eb', background: '#f0f9ff', borderRadius: '0 12px 12px 0', fontStyle: 'italic' } },\n    React.createElement('div', { style: { fontSize: '18px', color: '#1e40af', lineHeight: 1.7, marginBottom: '12px' } }, '“' + text + '”'),\n    author && React.createElement('div', { style: { fontSize: '14px', color: '#64748b', textAlign: 'right', fontWeight: 600 } }, '— ' + author)\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "1a9898fc-dc59-4606-82b1-308841d58365",
-      "component_id": "47a27b70-6953-4829-a838-1225a85c5c6f",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "981cdd19-44b7-4117-ac57-f8628ef01abd",
+      "component_id": "b6324b81-a748-4330-ac4d-27ca01e139d8",
       "version": "1.0.0",
       "source_code": "function KeyPointsList({ items = [] }) {\n  return React.createElement('div', { style: { margin: '24px 0', padding: '20px 24px', background: '#fefce8', border: '1px solid #fde68a', borderRadius: '12px' } },\n    React.createElement('div', { style: { fontSize: '14px', color: '#92400e', marginBottom: '12px', fontWeight: 700 } }, '⭐ 核心要点'),\n    React.createElement('ul', { style: { margin: 0, paddingLeft: '0', listStyle: 'none' } },\n      items.map((it, i) => React.createElement('li', { key: i, style: { padding: '8px 0', fontSize: '15px', color: '#78350f', display: 'flex', alignItems: 'flex-start', gap: '10px', lineHeight: 1.6 } },\n        React.createElement('span', { style: { color: '#eab308', fontSize: '18px', flexShrink: 0 } }, '✦'),\n        React.createElement('span', null, it)\n      ))\n    )\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     },
     {
-      "created_at": "2026-06-21 22:42:14",
-      "id": "f0997a6d-9601-4f9f-af94-3d12f5ed5050",
-      "component_id": "0dea709b-2950-4d8e-acc8-05d35ec3601b",
+      "created_at": "2026-06-21 22:57:28",
+      "id": "048f4db6-569a-4a9e-9ba8-6cb7a88ca2ce",
+      "component_id": "ffa71007-4e48-4504-bdf5-e2162e6b0c57",
       "version": "1.0.0",
       "source_code": "function VideoEmbed({ url, poster }) {\n  return React.createElement('div', { style: { margin: '24px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' } },\n    React.createElement('video', { controls: true, poster, style: { width: '100%', display: 'block', background: '#000' } },\n      React.createElement('source', { src: url, type: 'video/mp4' }),\n      '您的浏览器不支持视频播放。'\n    )\n  );\n}",
       "changelog": "初始版本",
       "is_active": 1
     }
   ],
-  "articles": [
-    {
-      "created_at": "2026-06-21 22:46:55",
-      "id": "db7769dc-04dd-4e6f-b74b-ef165e44be06",
-      "title": "????:???????",
-      "intent_description": "???????,??????,???????",
-      "content": "\"????????\"",
-      "layout_json": "[{\"_source_code\":\"\",\"id\":\"n1\",\"component_name\":\"ArticleHeader\",\"version\":\"1.0.0\",\"order\":0,\"match_score\":0.78,\"component_id\":\"c1\",\"component_version_id\":\"v1\",\"props\":{\"eyebrow\":\"????\",\"title\":\"AI???????\",\"subtitle\":\"???CMS??\"}},{\"_source_code\":\"\",\"id\":\"n2\",\"component_name\":\"Timeline\",\"version\":\"1.0.0\",\"order\":1,\"match_score\":0.72,\"component_id\":\"c2\",\"component_version_id\":\"v2\",\"props\":{\"items\":[{\"time\":\"2024-03\",\"description\":\"v1??\",\"title\":\"??\"}]}},{\"_source_code\":\"\",\"id\":\"n3\",\"component_name\":\"CodeBlock\",\"version\":\"1.0.0\",\"order\":2,\"match_score\":0.65,\"component_id\":\"c3\",\"component_version_id\":\"v3\",\"props\":{\"code\":\"console.log(1)\",\"language\":\"javascript\"}}]",
-      "status": "published"
-    },
-    {
-      "created_at": "2026-06-21 22:48:33",
-      "id": "9969d0cd-d303-413b-b0d1-63f5a5694686",
-      "title": "????????:??????????",
-      "intent_description": "??????,??????????????????",
-      "content": "\"???????????????????\\\\n\\\\n????????????...\"",
-      "layout_json": "[{\"id\":\"node_0dea709b-2950-4d8e-acc8-05d35ec3601b_1782082113595_0_rcsb\",\"component_id\":\"0dea709b-2950-4d8e-acc8-05d35ec3601b\",\"component_version_id\":\"f0997a6d-9601-4f9f-af94-3d12f5ed5050\",\"component_name\":\"VideoEmbed\",\"version\":\"1.0.0\",\"_source_code\":\"function VideoEmbed({ url, poster }) {\\n  return React.createElement('div', { style: { margin: '24px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' } },\\n    React.createElement('video', { controls: true, poster, style: { width: '100%', display: 'block', background: '#000' } },\\n      React.createElement('source', { src: url, type: 'video/mp4' }),\\n      '?????????????'\\n    )\\n  );\\n}\",\"match_score\":0.1289,\"order\":0,\"props\":{\"url\":\"https://www.w3schools.com/html/mov_bbb.mp4\",\"poster\":\"https://picsum.photos/640/360\"}},{\"id\":\"node_9e2e9de7-54a8-4cbc-a12b-339c6efc5d7f_1782082113595_1_dajj\",\"component_id\":\"9e2e9de7-54a8-4cbc-a12b-339c6efc5d7f\",\"component_version_id\":\"084b385c-a060-4a7c-a3ae-535a5305d65d\",\"component_name\":\"ImageGallery\",\"version\":\"1.0.0\",\"_source_code\":\"function ImageGallery({ images = [] }) {\\n  return React.createElement('div', { style: { margin: '24px 0' } },\\n    React.createElement('div', { style: { fontSize: '14px', color: '#6b7280', marginBottom: '12px', fontWeight: 600 } }, '?? ????'),\\n    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' } },\\n      images.map((img, i) => React.createElement('div', { key: i, style: { borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', aspectRatio: '4/3' } },\\n        React.createElement('img', { src: img.src, alt: img.alt || '', style: { width: '100%', height: '100%', objectFit: 'cover' } })\\n      ))\\n    )\\n  );\\n}\",\"match_score\":0.0784,\"order\":1,\"props\":{\"images\":[{\"src\":\"https://picsum.photos/400/300?1\",\"alt\":\"?1\"},{\"src\":\"https://picsum.photos/400/300?2\",\"alt\":\"?2\"},{\"src\":\"https://picsum.photos/400/300?3\",\"alt\":\"?3\"}]}},{\"id\":\"node_dc1246dc-340e-4aae-a9b3-fe61474a9055_1782082113595_2_xf68\",\"component_id\":\"dc1246dc-340e-4aae-a9b3-fe61474a9055\",\"component_version_id\":\"a93d0577-bdf4-4694-a23f-0dac6ada29e3\",\"component_name\":\"RichParagraph\",\"version\":\"1.0.0\",\"_source_code\":\"function RichParagraph({ content }) {\\n  return React.createElement('div', { style: { margin: '20px 0', fontSize: '16px', lineHeight: 1.8, color: '#1f2937' } },\\n    (content || '').split(/\\\\n\\\\n/).filter(Boolean).map((p, i) =>\\n      React.createElement('p', { key: i, style: { margin: '0 0 16px 0', textAlign: 'justify' } }, p)\\n    )\\n  );\\n}\",\"match_score\":0.3049,\"order\":2,\"props\":{\"content\":\"?????????,??????????????????????????????????????????\\n\\n???????,????????????\"}}]",
-      "status": "published"
-    }
-  ],
-  "article_component_usages": [
-    {
-      "created_at": "2026-06-21 22:46:55",
-      "id": "572592fd-2ff0-4337-bbaf-e4f22496d531",
-      "article_id": "db7769dc-04dd-4e6f-b74b-ef165e44be06",
-      "component_id": "c1",
-      "component_version_id": "v1",
-      "match_score": 0.78,
-      "layout_order": 0,
-      "assigned_props": "{\"eyebrow\":\"????\",\"title\":\"AI???????\",\"subtitle\":\"???CMS??\"}"
-    },
-    {
-      "created_at": "2026-06-21 22:46:55",
-      "id": "227b20cc-518e-442c-ad66-9877a0036388",
-      "article_id": "db7769dc-04dd-4e6f-b74b-ef165e44be06",
-      "component_id": "c2",
-      "component_version_id": "v2",
-      "match_score": 0.72,
-      "layout_order": 1,
-      "assigned_props": "{\"items\":[{\"time\":\"2024-03\",\"description\":\"v1??\",\"title\":\"??\"}]}"
-    },
-    {
-      "created_at": "2026-06-21 22:46:55",
-      "id": "d97c746a-27ca-4384-b340-0dc0e17cc858",
-      "article_id": "db7769dc-04dd-4e6f-b74b-ef165e44be06",
-      "component_id": "c3",
-      "component_version_id": "v3",
-      "match_score": 0.65,
-      "layout_order": 2,
-      "assigned_props": "{\"code\":\"console.log(1)\",\"language\":\"javascript\"}"
-    },
-    {
-      "created_at": "2026-06-21 22:48:33",
-      "id": "95b83255-5049-4e38-a5ba-8c9b6d38db63",
-      "article_id": "9969d0cd-d303-413b-b0d1-63f5a5694686",
-      "component_id": "0dea709b-2950-4d8e-acc8-05d35ec3601b",
-      "component_version_id": "f0997a6d-9601-4f9f-af94-3d12f5ed5050",
-      "match_score": 0.1289,
-      "layout_order": 0,
-      "assigned_props": "{\"url\":\"https://www.w3schools.com/html/mov_bbb.mp4\",\"poster\":\"https://picsum.photos/640/360\"}"
-    },
-    {
-      "created_at": "2026-06-21 22:48:33",
-      "id": "59794217-a1cd-4652-a1f1-08f6110d304a",
-      "article_id": "9969d0cd-d303-413b-b0d1-63f5a5694686",
-      "component_id": "9e2e9de7-54a8-4cbc-a12b-339c6efc5d7f",
-      "component_version_id": "084b385c-a060-4a7c-a3ae-535a5305d65d",
-      "match_score": 0.0784,
-      "layout_order": 1,
-      "assigned_props": "{\"images\":[{\"src\":\"https://picsum.photos/400/300?1\",\"alt\":\"?1\"},{\"src\":\"https://picsum.photos/400/300?2\",\"alt\":\"?2\"},{\"src\":\"https://picsum.photos/400/300?3\",\"alt\":\"?3\"}]}"
-    },
-    {
-      "created_at": "2026-06-21 22:48:33",
-      "id": "0c01fafb-dcde-48e3-a5ae-32c073ae566e",
-      "article_id": "9969d0cd-d303-413b-b0d1-63f5a5694686",
-      "component_id": "dc1246dc-340e-4aae-a9b3-fe61474a9055",
-      "component_version_id": "a93d0577-bdf4-4694-a23f-0dac6ada29e3",
-      "match_score": 0.3049,
-      "layout_order": 2,
-      "assigned_props": "{\"content\":\"?????????,??????????????????????????????????????????\\n\\n???????,????????????\"}"
-    }
-  ],
+  "articles": [],
+  "article_component_usages": [],
   "meta": {
-    "created_at": "2026-06-21 22:42:13",
+    "created_at": "2026-06-21 22:57:27",
     "version": 1
   }
 }

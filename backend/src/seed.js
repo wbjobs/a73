@@ -1,6 +1,7 @@
 import { initDB, insert, queryAll } from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 import { getEmbedding, vectorToBuffer } from './semantic.js';
+import { getComponentLabels } from './intentClassifier.js';
 
 const COMPONENTS = [
   {
@@ -154,12 +155,15 @@ async function run() {
     const vec = await getEmbedding(def.semantic_description);
     const buf = vectorToBuffer(vec);
 
+    const autoLabels = getComponentLabels(def.name, def.category, def.semantic_description);
+
     insert('components', {
       id: cid,
       name: def.name,
       semantic_description: def.semantic_description,
       category: def.category,
       props_schema: null,
+      labels: JSON.stringify(autoLabels),
     });
     insert('component_versions', {
       id: vid,
@@ -170,7 +174,7 @@ async function run() {
       changelog: '初始版本',
       is_active: 1,
     });
-    console.log(`[Seed] Registered ${def.name}@1.0.0`);
+    console.log(`[Seed] Registered ${def.name}@1.0.0 labels=[${autoLabels.join(',')}]`);
   }
 
   console.log(`[Seed] Done. ${COMPONENTS.length} components registered.`);

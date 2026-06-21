@@ -52,6 +52,7 @@ function EditorPage() {
   const [matches, setMatches] = useState([]);
   const [layout, setLayout] = useState([]);
   const [debug, setDebug] = useState(null);
+  const [classification, setClassification] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -73,7 +74,9 @@ function EditorPage() {
       setMatches(res.matches);
       setLayout(res.layout);
       setDebug(res.debug);
-      showToast(`匹配完成！从 ${res.debug.total_considered} 个组件中选出 Top ${res.matches.length}`, 'success');
+      setClassification(res.classification || null);
+      const labelInfo = res.classification ? ` | 标签: ${res.classification.labels.map(l => l.name).join(', ')}` : '';
+      showToast(`匹配完成！从 ${res.debug.total_considered} 个组件中选出 Top ${res.matches.length}${labelInfo}`, 'success');
     } catch (e) {
       showToast('匹配失败: ' + e.message, 'error');
     } finally {
@@ -183,13 +186,34 @@ function EditorPage() {
           }, matching ? '🤖 AI 正在分析意图...' : '🔍 运行语义匹配')
         ),
 
-        debug && React.createElement('div', { style: { marginBottom: 16, padding: '10px 14px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 12, color: '#0369a1' } },
-          '📊 检索了 ', React.createElement('b', null, debug.total_considered), ' 个组件，分数范围: [',
-          (debug.score_range?.[0] * 100).toFixed(1), '% ~ ', (debug.score_range?.[1] * 100).toFixed(1), '%]'
+        debug && React.createElement('div', { style: { marginBottom: 16 } },
+          React.createElement('div', { style: { padding: '10px 14px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 12, color: '#0369a1', marginBottom: 8 } },
+            '📊 三阶段匹配: ',
+            React.createElement('b', null, debug.total_considered), ' 总组件 → ',
+            React.createElement('b', null, debug.label_filtered_count), ' 标签筛选 → ',
+            React.createElement('b', null, matches.length), ' Top-K | ',
+            '余弦范围: [', (debug.score_range?.[0] * 100).toFixed(1), '% ~ ', (debug.score_range?.[1] * 100).toFixed(1), '%] | ',
+            '权重: 标签', (debug.label_weight * 100).toFixed(0) + '%', '+向量', (debug.cosine_weight * 100).toFixed(0) + '%',
+            debug.elapsed_ms ? ' | 耗时 ' + debug.elapsed_ms + 'ms' : ''
+          ),
+          classification && React.createElement('div', { style: { padding: '10px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, fontSize: 12, color: '#7c3aed' } },
+            React.createElement('div', { style: { fontWeight: 700, marginBottom: 6 } }, '🏷️ 意图分类标签',
+              classification.model_timed_out && React.createElement('span', { style: { marginLeft: 8, color: '#dc2626', fontWeight: 400 } }, '⚠️ 模型超时，已降级到关键词规则'),
+              !classification.model_timed_out && classification.source === 'keyword' && React.createElement('span', { style: { marginLeft: 8, color: '#d97706', fontWeight: 400 } }, '🔑 关键词规则匹配'),
+              classification.source === 'model+keyword' && React.createElement('span', { style: { marginLeft: 8, color: '#059669', fontWeight: 400 } }, '🤖 模型+关键词融合')
+            ),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+              classification.labels.map((l, i) => React.createElement('span', { key: i, style: {
+                padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                background: l.confidence >= 0.7 ? '#dcfce7' : l.confidence >= 0.5 ? '#fef9c3' : '#fee2e2',
+                color: l.confidence >= 0.7 ? '#166534' : l.confidence >= 0.5 ? '#854d0e' : '#991b1b',
+              } }, l.name + ' ' + (l.confidence * 100).toFixed(0) + '%'))
+            )
+          )
         ),
 
         matches.length > 0 && React.createElement('div', { style: { marginBottom: 20 } },
-          React.createElement('h3', { style: { fontSize: 14, fontWeight: 700, color: '#334155', margin: '0 0 10px 0' } }, '🤝 语义匹配结果（按得分排序）'),
+          React.createElement('h3', { style: { fontSize: 14, fontWeight: 700, color: '#334155', margin: '0 0 10px 0' } }, '🤝 匹配结果（标签权重55% + 向量权重45%）'),
           React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
             matches.map((m, i) => React.createElement('div', { key: i, style: {
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10,
@@ -200,11 +224,14 @@ function EditorPage() {
                 React.createElement('div', { style: { fontWeight: 700, color: '#1e1b4b', fontSize: 14 } }, m.name,
                   React.createElement('span', { style: { marginLeft: 8, fontSize: 11, color: '#6366f1', background: '#e0e7ff', padding: '2px 8px', borderRadius: 999 } }, m.category || '—')
                 ),
-                React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, m.semantic_description)
+                React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, m.semantic_description),
+                m.matched_labels && m.matched_labels.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' } },
+                  m.matched_labels.map((lbl, li) => React.createElement('span', { key: li, style: { fontSize: 10, padding: '1px 6px', borderRadius: 999, background: '#dbeafe', color: '#1e40af', fontWeight: 600 } }, '🏷️' + lbl))
+                )
               ),
               React.createElement('div', { style: { textAlign: 'right' } },
-                React.createElement('div', { style: { fontSize: 16, fontWeight: 800, color: m.score >= 0.6 ? '#059669' : m.score >= 0.4 ? '#d97706' : '#dc2626' } }, (m.score * 100).toFixed(1) + '%'),
-                React.createElement('div', { style: { fontSize: 10, color: '#94a3b8' } }, '匹配度')
+                React.createElement('div', { style: { fontSize: 16, fontWeight: 800, color: m.match_score >= 0.6 ? '#059669' : m.match_score >= 0.4 ? '#d97706' : '#dc2626' } }, (m.match_score * 100).toFixed(1) + '%'),
+                React.createElement('div', { style: { fontSize: 9, color: '#94a3b8' } }, '标签' + ((m.label_match_score || 0) * 100).toFixed(0) + '% 向量' + ((m.cosine_score || 0) * 100).toFixed(0) + '%')
               )
             ))
           )
@@ -339,6 +366,9 @@ function ViewPage() {
               React.createElement('span', { style: { width: 26, height: 26, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#475569' } }, i + 1),
               React.createElement('span', { style: { flex: 1, fontWeight: 600, color: '#1e293b' } }, n.component.name),
               React.createElement('span', { style: { fontSize: 11, color: '#94a3b8' } }, '@' + n.component.version),
+              n.matched_labels && n.matched_labels.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 3 } },
+                n.matched_labels.slice(0, 3).map((lbl, li) => React.createElement('span', { key: li, style: { fontSize: 9, padding: '1px 5px', borderRadius: 999, background: '#dbeafe', color: '#1e40af', fontWeight: 600 } }, lbl))
+              ),
               React.createElement('span', { style: { padding: '3px 10px', borderRadius: 999, fontWeight: 700, fontSize: 11,
                 background: n.match_score >= 0.6 ? '#dcfce7' : n.match_score >= 0.4 ? '#fef9c3' : '#fee2e2',
                 color: n.match_score >= 0.6 ? '#166534' : n.match_score >= 0.4 ? '#854d0e' : '#991b1b'
@@ -503,6 +533,9 @@ function ComponentsPage() {
             React.createElement('p', { style: { margin: '0 0 10px 0', fontSize: 12, color: '#64748b', lineHeight: 1.6, minHeight: 36,
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
             } }, c.semantic_description),
+            c.labels && c.labels.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 } },
+              c.labels.slice(0, 5).map((lbl, li) => React.createElement('span', { key: li, style: { fontSize: 10, padding: '1px 7px', borderRadius: 999, background: '#ede9fe', color: '#6d28d9', fontWeight: 600 } }, '🏷️' + lbl))
+            ),
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #f1f5f9' } },
               React.createElement('span', { style: { fontSize: 12, color: '#94a3b8' } }, (c.versions?.length || 0) + ' 个版本'),
               React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: '#3b82f6' } }, '查看详情 →')
