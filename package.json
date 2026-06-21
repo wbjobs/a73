@@ -1,0 +1,12 @@
+{
+  "name": "semantic-cms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Semantic routing based hybrid rendering CMS system",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "seed": "cd backend && node src/seed.js",
+    "install:all": "cd backend && npm install --no-audit --no-fund && cd ../frontend && npm install --no-audit --no-fund"
+  }
+}
