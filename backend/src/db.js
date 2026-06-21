@@ -77,6 +77,7 @@ export async function initDB() {
       component_versions: [],
       articles: [],
       article_component_usages: [],
+      component_feedback: [],
       meta: { created_at: nowISO(), version: 1 },
     };
     persist();

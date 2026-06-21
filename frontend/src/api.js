@@ -42,6 +42,13 @@ export const api = {
   updateArticle: (id, body) => request(`/articles/${id}`, { method: 'PUT', body }),
   deleteArticle: (id) => request(`/articles/${id}`, { method: 'DELETE' }),
   renderArticle: (id) => request(`/articles/${id}/render`),
+
+  submitFeedback: (body) => request('/feedback', { method: 'POST', body }),
+  listFeedback: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request('/feedback' + (q ? '?' + q : ''));
+  },
+  runCron: () => request('/cron/run'),
 };
 
 export default api;

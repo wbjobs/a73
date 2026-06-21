@@ -51,9 +51,17 @@ function EditorPage() {
   const [saving, setSaving] = useState(false);
   const [matches, setMatches] = useState([]);
   const [layout, setLayout] = useState([]);
+  const [originalLayout, setOriginalLayout] = useState([]);
   const [debug, setDebug] = useState(null);
   const [classification, setClassification] = useState(null);
   const [toast, setToast] = useState(null);
+  const [jsonText, setJsonText] = useState('');
+  const [jsonError, setJsonError] = useState(null);
+  const [sessionId] = useState(() => 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+  const [feedbackPending, setFeedbackPending] = useState(false);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [lastInterventionAt, setLastInterventionAt] = useState(0);
 
   useEffect(() => {
     if (editingId) {
@@ -62,9 +70,14 @@ function EditorPage() {
         setIntent(a.intent_description);
         setBody(a.content?.body || '');
         setLayout(a.layout_json || []);
+        setJsonText(JSON.stringify(a.layout_json || [], null, 2));
       }).catch(e => alert('加载失败: ' + e.message));
     }
   }, [editingId]);
+
+  useEffect(() => {
+    setJsonText(JSON.stringify(layout, null, 2));
+  }, [layout]);
 
   const runMatch = async () => {
     if (!intent.trim()) return showToast('请先输入内容意图描述', 'error');
@@ -73,8 +86,10 @@ function EditorPage() {
       const res = await api.matchComponents(intent, topK);
       setMatches(res.matches);
       setLayout(res.layout);
+      setOriginalLayout(JSON.parse(JSON.stringify(res.layout)));
       setDebug(res.debug);
       setClassification(res.classification || null);
+      setJsonText(JSON.stringify(res.layout, null, 2));
       const labelInfo = res.classification ? ` | 标签: ${res.classification.labels.map(l => l.name).join(', ')}` : '';
       showToast(`匹配完成！从 ${res.debug.total_considered} 个组件中选出 Top ${res.matches.length}${labelInfo}`, 'success');
     } catch (e) {
@@ -90,6 +105,10 @@ function EditorPage() {
     if (layout.length === 0) return showToast('请先运行语义匹配获取组件', 'error');
     setSaving(true);
     try {
+      const isAdjusted = isLayoutDifferent(originalLayout, layout);
+      if (isAdjusted) {
+        await submitFeedback('explicit_save', status === 'published');
+      }
       const payload = {
         title, intent_description: intent,
         content: { body },
@@ -110,11 +129,50 @@ function EditorPage() {
     }
   };
 
-  const updateNodeProps = (nodeId, props) => {
-    setLayout(layout.map(n => n.id === nodeId ? { ...n, props } : n));
+  const isLayoutDifferent = (orig, cur) => {
+    if (!orig || !cur) return orig !== cur;
+    if (orig.length !== cur.length) return true;
+    const origIds = orig.map(n => n.component_id).join(',');
+    const curIds = cur.map(n => n.component_id).join(',');
+    return origIds !== curIds;
   };
 
-  const removeNode = (nodeId) => setLayout(layout.filter(n => n.id !== nodeId));
+  const submitFeedback = async (type = 'manual_adjust', isPublish = false) => {
+    const isAdjusted = isLayoutDifferent(originalLayout, layout);
+    if (!isAdjusted) return;
+    const now = Date.now();
+    if (now - lastInterventionAt < 2000) return;
+    setLastInterventionAt(now);
+    setFeedbackPending(true);
+    try {
+      await api.submitFeedback({
+        intent_description: intent,
+        original_layout: originalLayout,
+        adjusted_layout: layout,
+        original_matches: matches,
+        intervention_type: type,
+        session_id: sessionId,
+        article_id: editingId || null,
+      });
+      showToast('✅ 已记录您的干预偏好，明天凌晨将用于增量训练！', 'success');
+    } catch (e) {
+      console.warn('Feedback submit failed:', e);
+    } finally {
+      setFeedbackPending(false);
+    }
+  };
+
+  const updateNodeProps = (nodeId, props) => {
+    const newLayout = layout.map(n => n.id === nodeId ? { ...n, props } : n);
+    setLayout(newLayout);
+    submitFeedback('props_edit');
+  };
+
+  const removeNode = (nodeId) => {
+    const newLayout = layout.filter(n => n.id !== nodeId);
+    setLayout(newLayout.map((n, i) => ({ ...n, order: i })));
+    submitFeedback('remove_component');
+  };
 
   const moveNode = (idx, dir) => {
     const to = idx + dir;
@@ -122,11 +180,139 @@ function EditorPage() {
     const arr = [...layout];
     [arr[idx], arr[to]] = [arr[to], arr[idx]];
     setLayout(arr.map((n, i) => ({ ...n, order: i })));
+    submitFeedback('reorder_buttons');
+  };
+
+  const handleJsonChange = (e) => {
+    const text = e.target.value;
+    setJsonText(text);
+    try {
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error('必须是数组');
+      setLayout(parsed.map((n, i) => ({ ...n, order: i })));
+      setJsonError(null);
+      submitFeedback('json_edit');
+    } catch (e) {
+      setJsonError(e.message);
+    }
+  };
+
+  const formatJson = () => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      setJsonText(JSON.stringify(parsed, null, 2));
+      setJsonError(null);
+    } catch (e) {
+      setJsonError(e.message);
+    }
+  };
+
+  // ---- Drag and Drop ----
+  const onDragStartMatch = (e, match) => {
+    setDraggedItem({ type: 'candidate', data: match });
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'candidate', id: match.component_id }));
+  };
+
+  const onDragStartLayout = (e, node, index) => {
+    setDraggedItem({ type: 'layout', data: node, index });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'layout', id: node.id, index }));
+  };
+
+  const onDragOver = (e, targetIndex = null) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = draggedItem?.type === 'candidate' ? 'copy' : 'move';
+    if (targetIndex !== null) setDragOverIndex(targetIndex);
+  };
+
+  const onDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const onDropLayout = (e, dropIndex = layout.length) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+    if (!draggedItem) return;
+
+    if (draggedItem.type === 'candidate') {
+      const match = draggedItem.data;
+      const existing = layout.find(n => n.component_id === match.component_id);
+      if (existing) {
+        showToast('该组件已在布局中', 'error');
+        return;
+      }
+      const newNode = {
+        id: `node_${match.component_id}_${Date.now()}_${dropIndex}_${Math.random().toString(36).slice(2, 6)}`,
+        component_id: match.component_id,
+        component_version_id: match.component_version_id,
+        component_name: match.name,
+        version: match.version,
+        _source_code: match.source_code,
+        match_score: match.match_score,
+        label_match_score: match.label_match_score,
+        cosine_score: match.cosine_score,
+        matched_labels: match.matched_labels || [],
+        order: dropIndex,
+        props: inferPropsFromMatch(match),
+      };
+      const newLayout = [...layout];
+      newLayout.splice(dropIndex, 0, newNode);
+      setLayout(newLayout.map((n, i) => ({ ...n, order: i })));
+      submitFeedback('drag_add');
+    } else if (draggedItem.type === 'layout') {
+      const fromIndex = draggedItem.index;
+      const toIndex = dropIndex > fromIndex ? dropIndex - 1 : dropIndex;
+      if (fromIndex === toIndex) return;
+      const newLayout = [...layout];
+      const [moved] = newLayout.splice(fromIndex, 1);
+      newLayout.splice(toIndex, 0, moved);
+      setLayout(newLayout.map((n, i) => ({ ...n, order: i })));
+      submitFeedback('drag_reorder');
+    }
+    setDraggedItem(null);
+  };
+
+  const inferPropsFromMatch = (match) => {
+    const n = (match.name || '').toLowerCase();
+    const intentLow = intent.toLowerCase();
+    if (n.includes('timeline') || n.includes('时间线')) return { items: [{ time: '2024-01', title: '关键事件一', description: '此处填写事件详情' }, { time: '2024-06', title: '关键事件二', description: '此处填写事件详情' }, { time: '2025-01', title: '最新进展', description: '此处填写最新状态' }] };
+    if (n.includes('image') && !n.includes('gallery')) return { src: 'https://picsum.photos/800/450', alt: '示例图片', caption: '图片说明文字' };
+    if (n.includes('code') || n.includes('代码')) return { language: 'javascript', code: '// 示例代码\nfunction hello() {\n  console.log("Hello, semantic CMS!");\n}\nhello();' };
+    if (n.includes('paragraph') || n.includes('段落') || n.includes('rich')) return { content: '此处为正文内容区域，编辑者可在此填写文章的详细正文内容。\n\n支持多段落排版，段落之间使用双换行分隔。' };
+    if (n.includes('news') || n.includes('新闻') || n.includes('card')) return { title: '新闻标题', summary: '新闻摘要内容，突出重点信息', publishedAt: new Date().toISOString().slice(0, 10), tags: ['科技', '前沿'] };
+    if (n.includes('gallery') || n.includes('画廊')) return { images: [{ src: 'https://picsum.photos/400/300?1', alt: '图1' }, { src: 'https://picsum.photos/400/300?2', alt: '图2' }, { src: 'https://picsum.photos/400/300?3', alt: '图3' }] };
+    if (n.includes('video') || n.includes('视频')) return { url: 'https://www.w3schools.com/html/mov_bbb.mp4', poster: 'https://picsum.photos/640/360' };
+    if (n.includes('quote') || n.includes('引用')) return { text: '这是一段引用的文字，用来突出重要的观点或引言。', author: '未知作者' };
+    if (n.includes('list') || n.includes('列表')) return { items: ['要点一：核心创新', '要点二：技术突破', '要点三：应用场景'] };
+    if (n.includes('header') || n.includes('页头')) return { eyebrow: intentLow.includes('科技') ? '科技前沿' : '最新资讯', title: '文章主标题', subtitle: '副标题或导读内容' };
+    return {};
+  };
+
+  const addCandidateToLayout = (match) => {
+    const existing = layout.find(n => n.component_id === match.component_id);
+    if (existing) return showToast('该组件已在布局中', 'error');
+    const newNode = {
+      id: `node_${match.component_id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      component_id: match.component_id,
+      component_version_id: match.component_version_id,
+      component_name: match.name,
+      version: match.version,
+      _source_code: match.source_code,
+      match_score: match.match_score,
+      label_match_score: match.label_match_score,
+      cosine_score: match.cosine_score,
+      matched_labels: match.matched_labels || [],
+      order: layout.length,
+      props: inferPropsFromMatch(match),
+    };
+    setLayout([...layout, newNode]);
+    submitFeedback('click_add');
   };
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 3000);
   };
 
   return React.createElement(React.Fragment, null,
@@ -135,142 +321,228 @@ function EditorPage() {
       position: 'fixed', top: 80, right: 24, zIndex: 1000,
       padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14,
       background: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : '#3b82f6',
-      color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxWidth: 420,
     } }, toast.msg),
 
-    React.createElement('div', { style: { maxWidth: 1400, margin: '0 auto', padding: '24px', display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr)', gap: 24 } },
+    React.createElement('div', { style: { maxWidth: 1800, margin: '0 auto', padding: '16px 24px 24px' } },
 
-      React.createElement('section', { style: { background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 24, border: '1px solid #e2e8f0' } },
-        React.createElement('h2', { style: { margin: '0 0 20px 0', fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 } }, '📝 内容编辑',
-          editingId && React.createElement('span', { style: { fontSize: 12, color: '#64748b', fontWeight: 400, background: '#f1f5f9', padding: '3px 10px', borderRadius: 999 } }, '编辑中')
-        ),
-
-        React.createElement('div', { style: { marginBottom: 16 } },
-          React.createElement('label', { style: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#334155' } }, '标题'),
-          React.createElement('input', {
-            value: title, onChange: e => setTitle(e.target.value),
-            style: { width: '100%', padding: '10px 14px', fontSize: 15, borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none' },
-            placeholder: '输入文章标题'
-          })
-        ),
-
-        React.createElement('div', { style: { marginBottom: 16 } },
-          React.createElement('label', { style: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#334155' } },
-            '🧠 内容意图描述（用于语义匹配组件）',
-            React.createElement('span', { style: { marginLeft: 8, fontWeight: 400, color: '#94a3b8', fontSize: 12 } }, '描述得越详细，匹配越精准')
+      React.createElement('div', { style: { background: 'white', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0', marginBottom: 16 } },
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 220px', gap: 16, alignItems: 'flex-end' } },
+          React.createElement('div', null,
+            React.createElement('label', { style: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#334155' } }, '标题'),
+            React.createElement('input', {
+              value: title, onChange: e => setTitle(e.target.value),
+              style: { width: '100%', padding: '10px 14px', fontSize: 15, borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none' },
+              placeholder: '输入文章标题'
+            })
           ),
-          React.createElement('textarea', {
-            value: intent, onChange: e => setIntent(e.target.value),
-            rows: 3,
-            style: { width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 8, border: '2px solid #bfdbfe', outline: 'none', resize: 'vertical', minHeight: 80, background: '#eff6ff' },
-            placeholder: '例如：这篇是科技新闻，要突出时间线，有图片和代码块'
-          }),
-          React.createElement('div', { style: { marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 } },
-            SUGGESTED_INTENTS.map((s, i) => React.createElement('button', {
-              key: i, onClick: () => setIntent(s),
-              style: { padding: '5px 10px', fontSize: 12, border: '1px solid #dbeafe', background: 'white', color: '#1e40af', borderRadius: 999, cursor: 'pointer' }
-            }, '💡 ' + s.slice(0, 18) + '...'))
+          React.createElement('div', null,
+            React.createElement('label', { style: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#334155' } }, '🧠 内容意图描述（越详细匹配越准）'),
+            React.createElement('input', {
+              value: intent, onChange: e => setIntent(e.target.value),
+              style: { width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 8, border: '2px solid #bfdbfe', outline: 'none', background: '#eff6ff' },
+              placeholder: '例如：这篇是科技新闻，要突出时间线，有图片和代码块'
+            })
+          ),
+          React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            React.createElement('select', { value: topK, onChange: e => setTopK(Number(e.target.value)), style: { padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, minWidth: 90 } },
+              [2, 3, 4, 5, 6].map(n => React.createElement('option', { key: n, value: n }, `Top ${n}`))
+            ),
+            React.createElement('button', {
+              onClick: runMatch, disabled: matching,
+              style: { flex: 1, padding: '10px 16px', fontSize: 14, fontWeight: 700, background: matching ? '#94a3b8' : 'linear-gradient(135deg, #3b82f6, #6366f1)', color: 'white', border: 'none', borderRadius: 8, cursor: matching ? 'not-allowed' : 'pointer', boxShadow: matching ? 'none' : '0 4px 12px rgba(59,130,246,0.35)' }
+            }, matching ? '🤖 AI分析中...' : '🔍 匹配')
           )
         ),
-
-        React.createElement('div', { style: { marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' } },
-          React.createElement('div', null,
-            React.createElement('label', { style: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#334155' } }, '匹配组件数 (Top-K)'),
-            React.createElement('select', { value: topK, onChange: e => setTopK(Number(e.target.value)), style: { padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 } },
-              [2, 3, 4, 5, 6].map(n => React.createElement('option', { key: n, value: n }, `Top ${n}`))
-            )
-          ),
-          React.createElement('button', {
-            onClick: runMatch, disabled: matching,
-            style: { flex: 1, minWidth: 180, padding: '11px 20px', fontSize: 14, fontWeight: 700, background: matching ? '#94a3b8' : 'linear-gradient(135deg, #3b82f6, #6366f1)', color: 'white', border: 'none', borderRadius: 10, cursor: matching ? 'not-allowed' : 'pointer', boxShadow: matching ? 'none' : '0 4px 12px rgba(59,130,246,0.35)' }
-          }, matching ? '🤖 AI 正在分析意图...' : '🔍 运行语义匹配')
+        React.createElement('div', { style: { marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 } },
+          SUGGESTED_INTENTS.map((s, i) => React.createElement('button', {
+            key: i, onClick: () => setIntent(s),
+            style: { padding: '5px 10px', fontSize: 12, border: '1px solid #dbeafe', background: 'white', color: '#1e40af', borderRadius: 999, cursor: 'pointer' }
+          }, '💡 ' + s.slice(0, 18) + '...'))
         ),
 
-        debug && React.createElement('div', { style: { marginBottom: 16 } },
-          React.createElement('div', { style: { padding: '10px 14px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 12, color: '#0369a1', marginBottom: 8 } },
-            '📊 三阶段匹配: ',
-            React.createElement('b', null, debug.total_considered), ' 总组件 → ',
-            React.createElement('b', null, debug.label_filtered_count), ' 标签筛选 → ',
-            React.createElement('b', null, matches.length), ' Top-K | ',
-            '余弦范围: [', (debug.score_range?.[0] * 100).toFixed(1), '% ~ ', (debug.score_range?.[1] * 100).toFixed(1), '%] | ',
-            '权重: 标签', (debug.label_weight * 100).toFixed(0) + '%', '+向量', (debug.cosine_weight * 100).toFixed(0) + '%',
-            debug.elapsed_ms ? ' | 耗时 ' + debug.elapsed_ms + 'ms' : ''
+        debug && React.createElement('div', { style: { marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' } },
+          React.createElement('div', { style: { padding: '8px 14px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 12, color: '#0369a1' } },
+            '📊 ', React.createElement('b', null, debug.total_considered), '总 → ',
+            React.createElement('b', null, debug.label_filtered_count), '筛选 → ',
+            React.createElement('b', null, matches.length), 'Top | 标签', (debug.label_weight * 100).toFixed(0) + '%',
+            '+向量', (debug.cosine_weight * 100).toFixed(0) + '%',
+            debug.elapsed_ms ? ' | ' + debug.elapsed_ms + 'ms' : ''
           ),
-          classification && React.createElement('div', { style: { padding: '10px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, fontSize: 12, color: '#7c3aed' } },
-            React.createElement('div', { style: { fontWeight: 700, marginBottom: 6 } }, '🏷️ 意图分类标签',
-              classification.model_timed_out && React.createElement('span', { style: { marginLeft: 8, color: '#dc2626', fontWeight: 400 } }, '⚠️ 模型超时，已降级到关键词规则'),
-              !classification.model_timed_out && classification.source === 'keyword' && React.createElement('span', { style: { marginLeft: 8, color: '#d97706', fontWeight: 400 } }, '🔑 关键词规则匹配'),
-              classification.source === 'model+keyword' && React.createElement('span', { style: { marginLeft: 8, color: '#059669', fontWeight: 400 } }, '🤖 模型+关键词融合')
-            ),
-            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
-              classification.labels.map((l, i) => React.createElement('span', { key: i, style: {
-                padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+          classification && React.createElement('div', { style: { padding: '8px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, fontSize: 12, color: '#7c3aed', display: 'flex', gap: 8, alignItems: 'center' } },
+            '🏷️ ',
+            classification.model_timed_out && '⚠️模型超时 | ',
+            !classification.model_timed_out && classification.source === 'keyword' && '🔑关键词 | ',
+            classification.source === 'model+keyword' && '🤖模型 | ',
+            React.createElement('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } },
+              classification.labels.slice(0, 6).map((l, i) => React.createElement('span', { key: i, style: {
+                padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
                 background: l.confidence >= 0.7 ? '#dcfce7' : l.confidence >= 0.5 ? '#fef9c3' : '#fee2e2',
                 color: l.confidence >= 0.7 ? '#166534' : l.confidence >= 0.5 ? '#854d0e' : '#991b1b',
               } }, l.name + ' ' + (l.confidence * 100).toFixed(0) + '%'))
             )
           )
-        ),
-
-        matches.length > 0 && React.createElement('div', { style: { marginBottom: 20 } },
-          React.createElement('h3', { style: { fontSize: 14, fontWeight: 700, color: '#334155', margin: '0 0 10px 0' } }, '🤝 匹配结果（标签权重55% + 向量权重45%）'),
-          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-            matches.map((m, i) => React.createElement('div', { key: i, style: {
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10,
-              background: 'linear-gradient(90deg, #f0f9ff 0%, #fafafa 100%)', border: '1px solid #e0e7ff'
-            } },
-              React.createElement('div', { style: { width: 32, height: 32, borderRadius: 8, background: '#6366f1', color: 'white', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 } }, i + 1),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontWeight: 700, color: '#1e1b4b', fontSize: 14 } }, m.name,
-                  React.createElement('span', { style: { marginLeft: 8, fontSize: 11, color: '#6366f1', background: '#e0e7ff', padding: '2px 8px', borderRadius: 999 } }, m.category || '—')
-                ),
-                React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, m.semantic_description),
-                m.matched_labels && m.matched_labels.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' } },
-                  m.matched_labels.map((lbl, li) => React.createElement('span', { key: li, style: { fontSize: 10, padding: '1px 6px', borderRadius: 999, background: '#dbeafe', color: '#1e40af', fontWeight: 600 } }, '🏷️' + lbl))
-                )
-              ),
-              React.createElement('div', { style: { textAlign: 'right' } },
-                React.createElement('div', { style: { fontSize: 16, fontWeight: 800, color: m.match_score >= 0.6 ? '#059669' : m.match_score >= 0.4 ? '#d97706' : '#dc2626' } }, (m.match_score * 100).toFixed(1) + '%'),
-                React.createElement('div', { style: { fontSize: 9, color: '#94a3b8' } }, '标签' + ((m.label_match_score || 0) * 100).toFixed(0) + '% 向量' + ((m.cosine_score || 0) * 100).toFixed(0) + '%')
-              )
-            ))
-          )
-        ),
-
-        React.createElement('div', { style: { marginBottom: 16 } },
-          React.createElement('label', { style: { display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#334155' } }, '正文内容'),
-          React.createElement('textarea', {
-            value: body, onChange: e => setBody(e.target.value),
-            rows: 8,
-            style: { width: '100%', padding: '12px 14px', fontSize: 14, borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.7 }
-          })
-        ),
-
-        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-          React.createElement('button', { onClick: () => saveArticle('draft'), disabled: saving, style: { padding: '10px 20px', fontSize: 14, fontWeight: 600, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer' } },
-            saving ? '保存中...' : '💾 保存草稿'
-          ),
-          React.createElement('button', { onClick: () => saveArticle('published'), disabled: saving, style: { padding: '10px 24px', fontSize: 14, fontWeight: 700, background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.35)' } },
-            saving ? '发布中...' : '🚀 发布文章'
-          )
         )
       ),
 
-      React.createElement('section', { style: { background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 24, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' } },
-        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
-          React.createElement('h2', { style: { margin: 0, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 } }, '👁️ 实时预览',
-            React.createElement('span', { style: { fontSize: 12, background: '#dbeafe', color: '#1e40af', padding: '3px 10px', borderRadius: 999, fontWeight: 600 } }, layout.length + ' 个组件')
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr) 360px', gap: 14, minHeight: 'calc(100vh - 280px)' } },
+
+        React.createElement('section', { style: { background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' } },
+          React.createElement('div', { style: { padding: '14px 16px', borderBottom: '1px solid #f1f5f9', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)' } },
+            React.createElement('h3', { style: { margin: 0, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } }, '🧩 候选组件',
+              React.createElement('span', { style: { fontSize: 11, background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 999, fontWeight: 600 } }, matches.length)),
+            React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 4 } }, '拖拽到中间预览区添加')
           ),
-          layout.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 6 } },
-            React.createElement('button', { onClick: () => { setLayout([]); setMatches([]); }, style: { padding: '5px 10px', fontSize: 12, border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', borderRadius: 8, cursor: 'pointer' } }, '清空')
+          matches.length === 0 ? React.createElement('div', { style: { padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+            '点击 "🔍 匹配" 按钮\n获取候选组件'
+          ) :
+            React.createElement('div', { style: { padding: 12, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 } },
+              matches.map((m, i) => {
+                const isInLayout = layout.some(n => n.component_id === m.component_id);
+                return React.createElement('div', { key: m.component_id,
+                  draggable: !isInLayout,
+                  onDragStart: (e) => !isInLayout && onDragStartMatch(e, m),
+                  onClick: () => addCandidateToLayout(m),
+                  style: {
+                    padding: '10px 12px', borderRadius: 10, border: '1px solid ' + (isInLayout ? '#e2e8f0' : '#c7d2fe'),
+                    background: isInLayout ? '#f8fafc' : 'linear-gradient(90deg, #f0f9ff, #fafafa)',
+                    cursor: isInLayout ? 'not-allowed' : 'grab',
+                    opacity: isInLayout ? 0.5 : 1,
+                    transition: 'all 0.15s',
+                    userSelect: 'none',
+                  }
+                },
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
+                    React.createElement('div', { style: { fontWeight: 700, color: '#1e1b4b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 } },
+                      React.createElement('span', { style: { width: 22, height: 22, borderRadius: 6, background: '#6366f1', color: 'white', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' } }, i + 1),
+                      m.name
+                    ),
+                    React.createElement('span', { style: { fontSize: 13, fontWeight: 800, color: m.match_score >= 0.6 ? '#059669' : m.match_score >= 0.4 ? '#d97706' : '#dc2626' } }, (m.match_score * 100).toFixed(0) + '%')
+                  ),
+                  m.matched_labels && m.matched_labels.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 } },
+                    m.matched_labels.slice(0, 3).map((lbl, li) => React.createElement('span', { key: li, style: { fontSize: 9, padding: '1px 5px', borderRadius: 999, background: '#dbeafe', color: '#1e40af', fontWeight: 600 } }, lbl))
+                  ),
+                  React.createElement('div', { style: { fontSize: 10, color: '#94a3b8', marginTop: 4 } }, isInLayout ? '✓ 已在布局中 · 点击不重复添加' : '点击添加 / 拖拽到预览区')
+                );
+              })
+            )
+        ),
+
+        React.createElement('section', { style: { background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' } },
+          React.createElement('div', { style: { padding: '14px 16px', borderBottom: '1px solid #f1f5f9', background: 'linear-gradient(135deg, #eff6ff, #e0e7ff)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+            React.createElement('div', null,
+              React.createElement('h3', { style: { margin: 0, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } }, '👁️ 预览区',
+                React.createElement('span', { style: { fontSize: 11, background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: 999, fontWeight: 600 } }, layout.length + ' 个组件')
+              ),
+              React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 4 } }, '拖拽排序 · 从左侧拖入新增 · JSON面板可编辑')
+            ),
+            layout.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 6 } },
+              React.createElement('button', { onClick: () => { setLayout([]); setOriginalLayout([]); setMatches([]); }, style: { padding: '5px 10px', fontSize: 12, border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', borderRadius: 8, cursor: 'pointer' } }, '清空'),
+              React.createElement('button', { onClick: () => saveArticle('draft'), disabled: saving || feedbackPending, style: { padding: '6px 12px', fontSize: 12, fontWeight: 600, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer' } }, saving ? '保存中...' : '💾 草稿'),
+              React.createElement('button', { onClick: () => saveArticle('published'), disabled: saving || feedbackPending, style: { padding: '6px 14px', fontSize: 12, fontWeight: 700, background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '0 4px 10px rgba(16,185,129,0.3)' } }, saving ? '发布中...' : '🚀 发布')
+            )
+          ),
+
+          React.createElement('div', {
+            onDragOver: (e) => onDragOver(e, layout.length),
+            onDragLeave: onDragLeave,
+            onDrop: (e) => onDropLayout(e, layout.length),
+            style: {
+              flex: 1, padding: 24, overflowY: 'auto',
+              background: layout.length === 0 ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' : 'white',
+              backgroundImage: layout.length === 0 ? 'radial-gradient(#e2e8f0 1px, transparent 1px)' : 'none',
+              backgroundSize: '24px 24px',
+              position: 'relative',
+            }
+          },
+            layout.length === 0 ? React.createElement('div', { style: {
+              position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              textAlign: 'center', color: '#94a3b8', fontSize: 14, maxWidth: 320, lineHeight: 1.8,
+              padding: 40, border: '2px dashed #cbd5e1', borderRadius: 16, background: 'rgba(255,255,255,0.7)',
+            } },
+              React.createElement('div', { style: { fontSize: 48, marginBottom: 12 } }, '🖼️'),
+              React.createElement('div', { style: { fontWeight: 700, color: '#64748b', fontSize: 16, marginBottom: 6 } }, '可视化组件拼装台'),
+              React.createElement('div', { style: { fontSize: 12 } }, '从左侧候选组件拖拽到这里\n或点击组件卡片直接添加\n也可以在右侧JSON面板编辑')
+            ) : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+              layout.map((node, idx) => React.createElement('div', { key: node.id,
+                draggable: true,
+                onDragStart: (e) => onDragStartLayout(e, node, idx),
+                onDragOver: (e) => onDragOver(e, idx),
+                onDragLeave: onDragLeave,
+                onDrop: (e) => onDropLayout(e, idx),
+                style: {
+                  position: 'relative',
+                  padding: 16,
+                  border: dragOverIndex === idx ? '2px dashed #6366f1' : '1px solid #e2e8f0',
+                  borderRadius: 12,
+                  background: draggedItem?.type === 'layout' && draggedItem.index === idx ? '#f0f9ff' : 'white',
+                  transition: 'all 0.15s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                }
+              },
+                React.createElement('div', { style: {
+                  position: 'absolute', top: -10, left: 12, padding: '2px 8px', fontSize: 10, fontWeight: 700,
+                  background: 'white', color: '#6366f1', border: '1px solid #c7d2fe', borderRadius: 999,
+                  zIndex: 10, display: 'flex', gap: 6, alignItems: 'center',
+                } },
+                  React.createElement('span', { style: { cursor: 'grab', userSelect: 'none' } }, '⋮⋮'),
+                  '#' + (idx + 1) + ' · ' + node.component_name,
+                  node.matched_labels && node.matched_labels.length > 0 && node.matched_labels.slice(0, 2).map((lbl, li) => React.createElement('span', { key: li, style: { background: '#dbeafe', color: '#1e40af', padding: '0 6px', borderRadius: 999, fontSize: 9 } }, lbl)),
+                  React.createElement('span', { style: {
+                    padding: '0 8px', borderRadius: 999, fontSize: 10, fontWeight: 800,
+                    background: node.match_score >= 0.6 ? '#dcfce7' : node.match_score >= 0.4 ? '#fef9c3' : '#fee2e2',
+                    color: node.match_score >= 0.6 ? '#166534' : node.match_score >= 0.4 ? '#854d0e' : '#991b1b'
+                  } }, (node.match_score * 100).toFixed(0) + '%')
+                ),
+                React.createElement('div', { style: { position: 'absolute', top: -8, right: 12, display: 'flex', gap: 4 } },
+                  idx > 0 && React.createElement('button', { onClick: () => moveNode(idx, -1), style: { padding: '2px 6px', fontSize: 11, border: '1px solid #e2e8f0', background: 'white', borderRadius: 6, cursor: 'pointer', color: '#64748b' } }, '↑'),
+                  idx < layout.length - 1 && React.createElement('button', { onClick: () => moveNode(idx, 1), style: { padding: '2px 6px', fontSize: 11, border: '1px solid #e2e8f0', background: 'white', borderRadius: 6, cursor: 'pointer', color: '#64748b' } }, '↓'),
+                  React.createElement('button', { onClick: () => removeNode(node.id), style: { padding: '2px 8px', fontSize: 11, border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', borderRadius: 6, cursor: 'pointer' } }, '✕')
+                ),
+                React.createElement('div', { style: { marginTop: 8 } },
+                  React.createElement(LayoutRenderer, { nodes: [node], editable: true, onPropsChange: updateNodeProps })
+                )
+              ))
+            )
           )
         ),
-        React.createElement('div', { style: {
-          border: '1px solid #e2e8f0', borderRadius: 12, padding: '24px 28px',
-          background: '#ffffff', flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 240px)',
-          backgroundImage: 'radial-gradient(#f1f5f9 1px, transparent 1px)', backgroundSize: '20px 20px'
-        } },
-          React.createElement(LayoutRenderer, { nodes: layout, editable: true, onPropsChange: updateNodeProps })
+
+        React.createElement('section', { style: { background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' } },
+          React.createElement('div', { style: { padding: '14px 16px', borderBottom: '1px solid #f1f5f9', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+            React.createElement('div', null,
+              React.createElement('h3', { style: { margin: 0, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } }, '📝 布局 JSON'),
+              React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 4 } }, '实时双向绑定 · 修改自动同步')
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 6 } },
+              React.createElement('button', { onClick: formatJson, style: { padding: '5px 10px', fontSize: 11, border: '1px solid #bbf7d0', background: 'white', color: '#166534', borderRadius: 6, cursor: 'pointer', fontWeight: 600 } }, '格式化')
+            )
+          ),
+          React.createElement('textarea', {
+            value: jsonText,
+            onChange: handleJsonChange,
+            spellCheck: false,
+            style: {
+              flex: 1, width: '100%', padding: 14, fontSize: 11, fontFamily: '"JetBrains Mono", "Consolas", monospace',
+              borderRadius: 0, border: 'none', outline: 'none', resize: 'none',
+              background: jsonError ? '#fef2f2' : '#0f172a',
+              color: jsonError ? '#b91c1c' : '#e2e8f0',
+              lineHeight: 1.6, whiteSpace: 'pre',
+            }
+          }),
+          jsonError && React.createElement('div', { style: { padding: '8px 14px', background: '#fef2f2', color: '#b91c1c', fontSize: 11, borderTop: '1px solid #fecaca' } },
+            '❌ JSON 格式错误: ' + jsonError
+          ),
+          React.createElement('div', { style: { padding: 12, borderTop: '1px solid #f1f5f9', background: '#fafafa' } },
+            React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginBottom: 8, fontWeight: 600 } }, '📌 提示'),
+            React.createElement('ul', { style: { margin: 0, paddingLeft: 18, fontSize: 10, color: '#64748b', lineHeight: 1.7 } },
+              React.createElement('li', null, '拖拽左侧组件卡片到预览区'),
+              React.createElement('li', null, '在预览区内拖拽组件可重新排序'),
+              React.createElement('li', null, '点击 ⬆⬇ 按钮可微调顺序'),
+              React.createElement('li', null, '点击 ✕ 可移除组件'),
+              React.createElement('li', null, '您的调整将被记录用于模型增量训练'),
+              React.createElement('li', null, '💾 保存或 🚀 发布时自动提交反馈')
+            )
+          )
         )
       )
     )
